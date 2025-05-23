@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import type { Player, TeamOutput } from '@/types';
 import { useMutation } from '@tanstack/react-query';
 import { balanceTeamsWithCSV, balanceTeamsWithJSON } from '@/lib/api';
+import axios from 'axios';
 
 const positionOrder = {
   'DEF': 0,
@@ -25,14 +26,51 @@ export default function Home() {
   const { mutate: balanceWithCSV, isPending: isCSVPending, data: csvTeams, error: csvError } = useMutation({
     mutationFn: (file: File) => balanceTeamsWithCSV(file, numTeams),
     onError: (error) => {
-      alert('Erro ao balancear times: ' + error.message);
+      console.error('Erro ao balancear times (CSV):', {
+        mensagem: error.message,
+        numTeams,
+        isAxiosError: axios.isAxiosError(error),
+        response: axios.isAxiosError(error) ? error.response?.data : undefined
+      });
+      
+      let errorMessage = 'Erro ao sortear os times. ';
+      if (axios.isAxiosError(error) && error.response?.data) {
+        errorMessage += typeof error.response.data === 'string' 
+          ? error.response.data
+          : 'Verifique o console para mais detalhes.';
+      } else {
+        errorMessage += 'Por favor, tente novamente com menos times ou ajuste os níveis dos jogadores.';
+      }
+      
+      alert(errorMessage);
     }
   });
 
   const { mutate: balanceWithJSON, isPending: isJSONPending, data: jsonTeams, error: jsonError } = useMutation({
     mutationFn: (players: Player[]) => balanceTeamsWithJSON(players, numTeams),
     onError: (error) => {
-      alert('Erro ao balancear times: ' + error.message);
+      console.error('Erro ao balancear times (JSON):', {
+        mensagem: error.message,
+        numTeams,
+        numJogadores: players.length,
+        isAxiosError: axios.isAxiosError(error),
+        response: axios.isAxiosError(error) ? error.response?.data : undefined,
+        distribuicaoPosicoes: players.reduce((acc, player) => {
+          acc[player.position] = (acc[player.position] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      });
+
+      let errorMessage = 'Erro ao sortear os times. ';
+      if (axios.isAxiosError(error) && error.response?.data) {
+        errorMessage += typeof error.response.data === 'string' 
+          ? error.response.data
+          : 'Verifique o console para mais detalhes.';
+      } else {
+        errorMessage += 'Por favor, tente novamente com menos times ou ajuste os níveis dos jogadores.';
+      }
+      
+      alert(errorMessage);
     }
   });
 
@@ -165,59 +203,71 @@ export default function Home() {
           </form>
         ) : (
           <div className="space-y-6">
-            <form onSubmit={handleAddPlayer} className="grid grid-cols-2 gap-4">
-              <input
-                name="name"
-                required
-                placeholder="Nome do Jogador"
-                className="border rounded p-2"
-              />
-              <input
-                name="overall"
-                type="number"
-                required
-                step="0.1"
-                min="0"
-                max="5"
-                placeholder="Nível (0-5)"
-                className="border rounded p-2"
-              />
-              <select
-                name="position"
-                required
-                className="border rounded p-2"
-              >
-                <option value="">Selecione a Posição</option>
-                <option value="DEF">Defesa</option>
-                <option value="MID">Meio</option>
-                <option value="ATT">Ataque</option>
-              </select>
-              <button
-                type="submit"
-                className="bg-green-500 text-white rounded py-2"
-              >
-                Adicionar à Lista
-              </button>
+            <form onSubmit={handleAddPlayer} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input
+                  name="name"
+                  required
+                  placeholder="Nome do Jogador"
+                  className="w-full border rounded p-2"
+                />
+                <input
+                  name="overall"
+                  type="number"
+                  required
+                  step="0.1"
+                  min="0"
+                  max="5"
+                  placeholder="Nível (0-5)"
+                  className="w-full border rounded p-2"
+                />
+                <select
+                  name="position"
+                  required
+                  className="w-full border rounded p-2"
+                >
+                  <option value="">Selecione a Posição</option>
+                  <option value="DEF">Defesa</option>
+                  <option value="MID">Meio</option>
+                  <option value="ATT">Ataque</option>
+                </select>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="bg-green-500 hover:bg-green-600 text-white rounded py-2 px-6"
+                >
+                  Adicionar à Lista
+                </button>
+              </div>
             </form>
 
             {players.length > 0 && (
               <div>
                 <h3 className="font-semibold mb-2">Lista de Jogadores:</h3>
-                <div className="max-h-40 overflow-y-auto mb-4">
+                <div className="max-h-40 overflow-y-auto mb-4 bg-gray-50 rounded-lg">
                   <table className="w-full">
-                    <thead>
+                    <thead className="bg-gray-100 sticky top-0">
                       <tr>
-                        <th className="text-left">Nome</th>
-                        <th className="text-left">Nível</th>
-                        <th className="text-left">Posição</th>
+                        <th className="text-left p-2">Nome</th>
+                        <th className="text-left p-2">Nível</th>
+                        <th className="text-left p-2">Posição</th>
                       </tr>
                     </thead>
                     <tbody>
                       {players.map((player, index) => (
-                        <tr key={index}>
-                          <td>{player.name}</td>
-                          <td>{player.overall}</td>
-                          <td>{player.position === 'DEF' ? 'Defesa' : player.position === 'MID' ? 'Meio' : 'Ataque'}</td>
+                        <tr key={index} className="border-b border-gray-100">
+                          <td className="p-2">{player.name}</td>
+                          <td className="p-2">{player.overall}</td>
+                          <td className="p-2">
+                            <span className={`text-sm px-2 py-1 rounded ${
+                              player.position === 'DEF' ? 'bg-blue-100 text-blue-800' :
+                              player.position === 'MID' ? 'bg-green-100 text-green-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {player.position === 'DEF' ? 'Defesa' : player.position === 'MID' ? 'Meio' : 'Ataque'}
+                            </span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
