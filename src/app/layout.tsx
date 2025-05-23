@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Team Balancer",
-  description: "Balance your football teams fairly",
+  title: "Balanceador de Times",
+  description: "Balanceie seus times de futebol de forma justa",
 };
 
 export default function RootLayout({

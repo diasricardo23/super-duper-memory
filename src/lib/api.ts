@@ -5,7 +5,7 @@ const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
 });
 
-export const balanceTeamsWithCSV = async (file: File): Promise<BalanceResponse> => {
+export const balanceTeamsWithCSV = async (file: File, numTeams: number): Promise<BalanceResponse> => {
   const formData = new FormData();
   formData.append('file', file);
 
@@ -14,7 +14,7 @@ export const balanceTeamsWithCSV = async (file: File): Promise<BalanceResponse> 
       'Content-Type': 'multipart/form-data',
     },
     params: {
-      num_teams: 2,
+      num_teams: numTeams,
       time_limit: 30,
       num_attempts: 5,
     },
@@ -23,10 +23,10 @@ export const balanceTeamsWithCSV = async (file: File): Promise<BalanceResponse> 
   return data;
 };
 
-export const balanceTeamsWithJSON = async (players: Player[]): Promise<BalanceResponse> => {
+export const balanceTeamsWithJSON = async (players: Player[], numTeams: number): Promise<BalanceResponse> => {
   const { data } = await api.post<BalanceResponse>('/balance/json', {
     players,
-    num_teams: 2,
+    num_teams: numTeams,
     time_limit: 30,
     num_attempts: 5,
   });
