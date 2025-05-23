@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import type { Player, BalanceResponse, TeamOutput } from '@/types';
+import type { Player, TeamOutput } from '@/types';
 import { useMutation } from '@tanstack/react-query';
 import { balanceTeamsWithCSV, balanceTeamsWithJSON } from '@/lib/api';
 
